@@ -1,8 +1,7 @@
 #ifndef RANSAC_H
 #define RANSAC_H
 
-#include "utils.h"
-#include <opencv2/core/core.hpp>
+// ㄋtd
 #include <math.h> // ceil, isnan
 #include <limits> // numeric_limits
 #include <random> // sample c++17
@@ -16,6 +15,9 @@
 
 // opencv
 #include <opencv2/core/eigen.hpp> // eigen2cv
+#include <opencv2/core/core.hpp>
+
+#include "utils.h"
 
 #define VERBOSE true
 #define DEBUG false
@@ -37,7 +39,7 @@ RANSAC(float prob_success) :
     m_p_success(prob_success),
     m_ratioOutliers(1.0), // outliers ratio begin with 100%
     m_minSet(4),
-    m_thres(100),         // TBD(htsui) forward and backward SSD error tolerance
+    m_thres(50),         // TBD(htsui) forward and backward SSD error tolerance
     m_iter(1000),
     m_maxInliers(0)       // init maxInliner with 0
     {
@@ -389,7 +391,6 @@ void calHomographyFromLinerConstraint(const point2f_set& pts_src,
         b(2*i+1, 0) = y_;
     }
 
-    // it needs to be replace by the dw::solver
     h = A.fullPivLu().solve(b);
     
     // vector form to Matrix

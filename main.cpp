@@ -35,6 +35,31 @@ int main()
     cv::cvtColor(img_src, img_src, cv::COLOR_BGR2GRAY);
     cv::cvtColor(img_dst, img_dst, cv::COLOR_BGR2GRAY);
 
+
+    // ----------  Reference homography - Baseline Homography -----------------
+    std::vector<cv::Point2f> pts_src_fix;
+    pts_src_fix.push_back(cv::Point2f(141, 131));
+    pts_src_fix.push_back(cv::Point2f(480, 159));
+    pts_src_fix.push_back(cv::Point2f(493, 630));
+    pts_src_fix.push_back(cv::Point2f(64, 601));
+
+    std::vector<cv::Point2f> pts_dst_fix;
+    pts_dst_fix.push_back(cv::Point2f(318, 256));
+    pts_dst_fix.push_back(cv::Point2f(534, 372));
+    pts_dst_fix.push_back(cv::Point2f(316, 670));
+    pts_dst_fix.push_back(cv::Point2f(73, 473));
+
+    // OpenCV implementation
+    cv::Mat h = cv::findHomography(pts_src_fix, pts_dst_fix);
+    std::cout << "opencv fix point h = " << std::endl;
+    std::cout << h << std::endl;
+    cv::Mat img_out_fix_h;
+    cv::warpPerspective(img_src, img_out_fix_h, h, img_src.size());
+    cv::imshow("img_baseline_homography", img_out_fix_h);
+
+    // ----------------- RANSAC ----------------
+
+
     // Variables to store the key points and descriptors
     std::vector<cv::KeyPoint> keypoints1, keypoints2;
     cv::Mat descriptor1, descriptor2;
@@ -70,58 +95,27 @@ int main()
         pts_dst.push_back(keypoints2[matches[i].trainIdx].pt);
     }
     
-    // TODO(htsui): redo this from the self-implement RANSAC
+    // OpenCV RANSAC
     vector<uchar>inliersMask(pts_src.size());
     cv::Mat H = cv::findHomography(pts_src, pts_dst, cv::FM_RANSAC, 3.0, inliersMask, 1000);
-
-
     std::cout << "OPENCV RANSAC H = " << std::endl;
     std::cout << H << std::endl;
-    cv::Mat img_out_RANSAC_H;
-    cv::warpPerspective(img_src, img_out_RANSAC_H, H, img_src.size());
-    cv::imshow("img_warp_RANSAC_H", img_out_RANSAC_H);
+    cv::Mat img_opencv_RANSAC;
+    cv::warpPerspective(img_src, img_opencv_RANSAC, H, img_src.size());
+    cv::imshow("img_OpenCV_RANSAC", img_opencv_RANSAC);
 
 
-
-    // select 4 points from source image
-    std::vector<cv::Point2f> pts_1;
-    pts_1.push_back(cv::Point2f(141, 131));
-    pts_1.push_back(cv::Point2f(480, 159));
-    pts_1.push_back(cv::Point2f(493, 630));
-    pts_1.push_back(cv::Point2f(64, 601));
-
-    std::vector<cv::Point2f> pts_2;
-    pts_2.push_back(cv::Point2f(318, 256));
-    pts_2.push_back(cv::Point2f(534, 372));
-    pts_2.push_back(cv::Point2f(316, 670));
-    pts_2.push_back(cv::Point2f(73, 473));
-
-
-
-    // Ransac
-    // Under ransac you should know which problem are you solving
-    // otherwise it will just be a coupled implemenation
+    // Comparing with Self-implemented Ransac
     float p_success = 0.99;
     ransac::RANSAC rs(p_success);
     cv::Mat H_htsui;
     rs.compute(pts_src, pts_dst, H_htsui);
-    cv::Mat img_htsui;
-    cv::warpPerspective(img_src, img_htsui, H_htsui, img_src.size());
-    cv::imshow("img_htsui", img_htsui);
-
-
-    // OpenCV implementation
-    cv::Mat h = cv::findHomography(pts_1, pts_2);
-    std::cout << "opencv fix point h = " << std::endl;
-    std::cout << h << std::endl;
-    cv::Mat img_out_fix_h;
-    cv::warpPerspective(img_src, img_out_fix_h, h, img_src.size());
-    cv::imshow("img_warp_fix_h", img_out_fix_h);
-
+    cv::Mat img_htsui_RANSAC;
+    cv::warpPerspective(img_src, img_htsui_RANSAC, H_htsui, img_src.size());
+    cv::imshow("img_htsui_RANSAC", img_htsui_RANSAC);
 
     //cv::imshow("img_src", img_src);
     //cv::imshow("img_dst", img_dst);
-    
-    
+
     cv::waitKey(0);
 }
