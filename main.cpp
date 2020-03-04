@@ -1,3 +1,5 @@
+// standard libraies
+#include <iostream>
 
 // opencv 
 #include <opencv2/opencv.hpp>  //warpPerspective
@@ -8,23 +10,8 @@
 #include <opencv2/features2d.hpp>
 
 // lib
-//#include "opticalFlow.h"
 #include "ransac.h"
-
-// standard libraies
-#include <iostream>
 using namespace std;
-
-class hazard_detection
-{
-public:
-
-
-
-private:
-
-};
-
 
 int main()
 {
@@ -34,8 +21,6 @@ int main()
     // convert the color into gray scale
     cv::cvtColor(img_src, img_src, cv::COLOR_BGR2GRAY);
     cv::cvtColor(img_dst, img_dst, cv::COLOR_BGR2GRAY);
-
-
     // ----------  Reference homography - Baseline Homography -----------------
     std::vector<cv::Point2f> pts_src_fix;
     pts_src_fix.push_back(cv::Point2f(141, 131));
@@ -57,9 +42,7 @@ int main()
     cv::warpPerspective(img_src, img_out_fix_h, h, img_src.size());
     cv::imshow("img_baseline_homography", img_out_fix_h);
 
-    // ----------------- RANSAC ----------------
-
-
+    // ------------------------- RANSAC ----------------------------------
     // Variables to store the key points and descriptors
     std::vector<cv::KeyPoint> keypoints1, keypoints2;
     cv::Mat descriptor1, descriptor2;
@@ -104,7 +87,6 @@ int main()
     cv::warpPerspective(img_src, img_opencv_RANSAC, H, img_src.size());
     cv::imshow("img_OpenCV_RANSAC", img_opencv_RANSAC);
 
-
     // Comparing with Self-implemented Ransac
     float p_success = 0.99;
     ransac::RANSAC rs(p_success);
@@ -113,9 +95,6 @@ int main()
     cv::Mat img_htsui_RANSAC;
     cv::warpPerspective(img_src, img_htsui_RANSAC, H_htsui, img_src.size());
     cv::imshow("img_htsui_RANSAC", img_htsui_RANSAC);
-
-    //cv::imshow("img_src", img_src);
-    //cv::imshow("img_dst", img_dst);
 
     cv::waitKey(0);
 }

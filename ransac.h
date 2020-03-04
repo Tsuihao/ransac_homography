@@ -1,10 +1,10 @@
 #ifndef RANSAC_H
 #define RANSAC_H
 
-// ㄋtd
+// std
 #include <math.h> // ceil, isnan
 #include <limits> // numeric_limits
-#include <random> // sample c++17
+#include <random>
 #include <algorithm>
 #include <iterator>
 #include <cassert> // assert
@@ -69,7 +69,7 @@ void compute(const std::vector<cv::Point2f>& pts_src,
         std::vector<cv::Point2f> pts_out_src;
         std::vector<cv::Point2f> pts_out_dst;
     
-        // 4 points
+        // get 4 points
         for(size_t k(0); k < m_minSet; ++k)
         {
             size_t index = m_indicesList[i][k];
@@ -80,15 +80,15 @@ void compute(const std::vector<cv::Point2f>& pts_src,
             pts_out_dst.push_back(dst);
         }
 
-        // compute homography we use Eigen for the internal interface
+        // compute homography, use Eigen for the internal interface
         Eigen::Matrix3f homography;
         calHomographyFromLinerConstraint(pts_out_src, pts_out_dst, homography);
 
-        // will be 3 x N matrix
+        // 3 x N matrix (N = datasetSize)
         MatrixXf eigen_pts_src(3, m_datasetSize);
         MatrixXf eigen_pts_dst(3, m_datasetSize);
         
-        // note take all points in & extend to Homogenous Coordinate
+        // take all points in & extend to Homogenous Coordinate
         buildUpEigenMatrixFromCvPoint2f(pts_src, pts_dst, eigen_pts_src, eigen_pts_dst);
 
         // compute the costFunction and update the liners
@@ -101,8 +101,8 @@ void compute(const std::vector<cv::Point2f>& pts_src,
             m_maxInliers = inliers;
             m_bestHomography = homography;
 
-            std::cout << "!!!!!!!!!!!!!!!!!! best model update  !!!!!!!!!!!!!!!" << std::endl;
-            std::cout << "best Inliers = " << m_maxInliers << std::endl;
+            std::cout << " ********************* Best model update ********************* " << std::endl;
+            std::cout << "best inliers = " << m_maxInliers << std::endl;
             std::cout << "best H = " << std::endl;
             std::cout << m_bestHomography << std::endl;
         }
@@ -133,8 +133,6 @@ void buildUpEigenMatrixFromCvPoint2f(const std::vector<cv::Point2f>& pts_src,
     RowVectorXf v_pts_dst_x(m_datasetSize), v_pts_dst_y(m_datasetSize);
     RowVectorXf v_ones(m_datasetSize); // for homogenous coordinate
 
-
-
     // fill in the eigen matrix 
     for(size_t i(0); i < pts_src.size(); ++i)
     {
@@ -152,7 +150,6 @@ void buildUpEigenMatrixFromCvPoint2f(const std::vector<cv::Point2f>& pts_src,
         | x1, x2, x3, ...................|
         | y1, y2, y3, ...................|
         |  1,  1,  1, ...................|
-
     */
 
     eigen_pts_src.row(0) << v_pts_src_x;
@@ -204,9 +201,8 @@ std::vector<float> forwardProjectionSqaureRootError(const Eigen::MatrixXf&  pts_
     p_ = H * pts_src;
     p_ /= p_(2);     // re-scale
     
-     // compute the diff
+    // compute the diff
     p_diff = pts_dst - p_;
-
 
     for(size_t col(0); col < p_diff.cols(); ++col)
     {
@@ -224,7 +220,6 @@ std::vector<float> forwardProjectionSqaureRootError(const Eigen::MatrixXf&  pts_
         }
         std::cout << std::endl;
     }
-
     return error;
 }
 ///////////////////////////////////////////////////////////////////////////////
@@ -287,12 +282,10 @@ size_t findInliers(const Eigen::MatrixXf&  pts_dst, const Eigen::MatrixXf& pts_s
 ///////////////////////////////////////////////////////////////////////////////
 void genRandomIndices(size_t count)
 {   
-
     std::uniform_int_distribution<size_t> indexDistribution(0, m_datasetSize - 1);
 
     // reset
     m_indicesList.clear();
-
   
     for(size_t k(0); k < count; ++k)
     {
@@ -313,20 +306,14 @@ void genRandomIndices(size_t count)
                         valid = false;
                         break;
                     }
-                }
-                
+                }        
             }
         }
         m_indicesList.push_back(tmp);
     }
-    
     if(VERBOSE)
     {
         std::cout << "m_indicesList size = " << m_indicesList.size() << std::endl;
-        
-        //std::cout << "m_indicesList [0] = "  <<  m_indicesList.() << std::endl;
-        //std::cout << "m_indicesList [" << count-1 << "] = "<< m_indicesList[count-1][0] "," << m_indicesList[count-1][1] 
-        //<< ", " <<m_indicesList[count-1][2] << ", " << m_indicesList[count-1][3]<< std::endl;
     }
 }
 
@@ -406,23 +393,20 @@ void calHomographyFromLinerConstraint(const point2f_set& pts_src,
         std::cout << "-------" << std::endl;
         std::cout << "Ah=b, H =" << std::endl;
         std::cout << H << std::endl;
-    
     }
 }
 
 ///////////////////////////////////////////////////////////////////////////////
 private:
 
-int m_minSet;
-long int m_thres;               // threshold
+int m_minSet;                  // for homography is 4
+long int m_thres;              // threshold
 int m_iter;                    // interation
 float m_p_success;             // probility of sucess
 float m_ratioOutliers;         // ratio of outliers
 size_t m_datasetSize;          // totoal number of points
 size_t m_maxInliers;           // number of inliers
 Eigen::Matrix3f m_bestHomography;    // base on the inliner count
-
-// this is a bad allocation at run-time
 std::vector<cv::Vec4i> m_indicesList;
 std::mt19937 m_rnd;
 std::vector<cv::Point2f> m_pts_src;

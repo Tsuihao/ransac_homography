@@ -3,6 +3,8 @@
 
 #include <Eigen/Core>
 
+// The following code is copied from Ref: https://ceres-solver.googlesource.com/ceres-solver/+/master/examples/libmv_homography.cc#35
+
 // A parameterization of the 2D homography matrix that uses 8 parameters so
 // that the matrix is normalized (H(2,2) == 1).
 // The homography matrix H is built from a list of 8 parameters (a, b,...g, h)
