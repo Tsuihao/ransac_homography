@@ -5,7 +5,8 @@
 - Eigen3
 - OpenCV2
 
-## WriteUp.
+## Run
+
 `git clone https://github.com/Tsuihao/ransac_homography.git`
 
 `cd ransac_homography`
@@ -15,9 +16,9 @@
 `./ransac_homography`
 
 
+## WriteUp.
 
-
-We first use the four fixed point to extract the baseline of Homogrpahy
+We first use the four fixed point to calculate the baseline of Homogrpahy
 (Great reference turtorial here [Ref](https://www.learnopencv.com/homography-examples-using-opencv-python-c/))
 ![Alt text](images/fixedPoints.png)
 
@@ -25,17 +26,20 @@ The baseline homography should look like
 (perspective transformation)
 ![Alt text](images/baseline.png)
 
-Now in order to generate the "a lot of" corresponding points for RANSAC.
-we use the SIFT detector.
+Now in order to generate the **a lot of corresponding points** for RANSAC, we use the SIFT detector.
 ![Alt text](images/SIFTmatching.png)
 
-By default, opencv provide the fucntion `findhomography` which uses RANSAC under the hood.
+By default, opencv provide a fucntion called [findhomography](https://docs.opencv.org/2.4/modules/calib3d/doc/camera_calibration_and_3d_reconstruction.html?highlight=findhomography#findhomography) which uses RANSAC under the hood.
 The result homography from opencv - `findhomography`.
-(As can be seen, it looks identical as the baseline images (that is what we are looking for!))
+
+As can be seen, it looks identical as the baseline images (that is what we are looking for!)
+
 ![Alt text](images/opencv.png)
 
 We are going to compare our own implementation of RANSAC.
-It's clear that the implementation has some bugs. check the below section
+
+**Oppsy** It's clear that the implementation has some bugs. check the below section
+
 ![Alt text](images/htsui_.png)
 
 
