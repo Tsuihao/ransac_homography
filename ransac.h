@@ -12,6 +12,7 @@
 // Eigen
 #include <Eigen/Core>
 #include <unsupported/Eigen/MatrixFunctions>
+#include <Eigen/SVD>  // SVD
 
 // opencv
 #include <opencv2/core/eigen.hpp> // eigen2cv
@@ -39,12 +40,13 @@ RANSAC(float prob_success) :
     m_p_success(prob_success),
     m_ratioOutliers(1.0), // outliers ratio begin with 100%
     m_minSet(4),
-    m_thres(50),         // TBD(htsui) forward and backward SSD error tolerance
-    m_iter(1000),
+    m_thres(10),         // TBD(htsui) forward and backward SSD error tolerance
+    m_iter(2000),
     m_maxInliers(0)       // init maxInliner with 0
     {
         // Make sure the indicesList is the same size as iteration number
         m_indicesList.reserve(m_iter);
+        m_rnd.seed(168);
     }
 
 ///////////////////////////////////////////////////////////////////////////////
@@ -83,6 +85,7 @@ void compute(const std::vector<cv::Point2f>& pts_src,
         // compute homography, use Eigen for the internal interface
         Eigen::Matrix3f homography;
         calHomographyFromLinerConstraint(pts_out_src, pts_out_dst, homography);
+        //calHomographyFromSVD(pts_out_src, pts_out_dst, homography);
 
         // 3 x N matrix (N = datasetSize)
         MatrixXf eigen_pts_src(3, m_datasetSize);
@@ -199,10 +202,23 @@ std::vector<float> forwardProjectionSqaureRootError(const Eigen::MatrixXf&  pts_
     MatrixXf p_, p_diff;
     
     p_ = H * pts_src;
-    p_ /= p_(2);     // re-scale
+    
+    // Every column needs to convert from "homogenous -> cartesian"
+    for(size_t col(0); col < p_.cols(); ++col)
+    {
+        p_(0, col) /= p_(2, col);  // x
+        p_(1, col) /= p_(2, col);  // y
+    }
     
     // compute the diff
     p_diff = pts_dst - p_;
+
+    // if(DEBUG)
+    // {
+    //     std::cout << "pts_src = " << pts_src << std::endl;
+    //     std::cout << "p_ = " << p_ << std::endl;
+    //     std::cout << "p_diff" << p_diff << std::endl;
+    // }
 
     for(size_t col(0); col < p_diff.cols(); ++col)
     {
@@ -233,8 +249,14 @@ std::vector<float>  backwardProjectionSqaureRootError(const Eigen::MatrixXf&  pt
     MatrixXf p, p_diff;
 
     p = H.inverse() * pts_dst;
-    p /= p(2);
-
+    
+    // Every column needs to convert from "homogenous -> cartesian"
+    for(size_t col(0); col < p.cols(); ++col)
+    {
+        p(0, col) /= p(2, col);  // x
+        p(1, col) /= p(2, col);  // y
+    }
+    
     p_diff = pts_src - p;
 
     for(size_t col(0); col < p_diff.cols(); ++col)
@@ -269,7 +291,7 @@ size_t findInliers(const Eigen::MatrixXf&  pts_dst, const Eigen::MatrixXf& pts_s
 
     for(size_t i(0); i < backward_error_list.size(); ++i)
     {   
-        float total_error = forward_error_list[i]; + backward_error_list[i];
+        float total_error = forward_error_list[i] + backward_error_list[i];
         if(DEBUG) std::cout << "total SRE =" << total_error << std::endl;
         if(total_error < m_thres)
         {
@@ -290,7 +312,7 @@ void genRandomIndices(size_t count)
     for(size_t k(0); k < count; ++k)
     {
         cv::Vec4i tmp;
-
+        
         // Assume we will always get 4 elements
         for(size_t i(0); i < m_minSet; ++i)
         {   
@@ -309,11 +331,97 @@ void genRandomIndices(size_t count)
                 }        
             }
         }
+
+        // TODO(htsui): Check points
+        // no 3 points are not on the same line
         m_indicesList.push_back(tmp);
     }
     if(VERBOSE)
     {
         std::cout << "m_indicesList size = " << m_indicesList.size() << std::endl;
+    }
+}
+///////////////////////////////////////////////////////////////////////////////
+void calHomographyFromSVD(const point2f_set& pts_src, 
+                          const point2f_set& pts_dst, 
+                          Eigen::Matrix3f& H)
+{  
+    // A * h = 0
+    // A =8x9 matrix, h = 9x1 matrix, 
+    // check slide 35: http://www.cse.psu.edu/~rtc12/CSE486/lecture16.pdf
+
+    /*
+        | x, y, 1, 0, 0, 0, -x'x, -x'y -x'|      |h11|     | 0 |
+        | 0, 0, 0, x, y, 1, -y'x, -y'y -y'|      |h12|     | 0 |
+        | ............................... |      |h13|     | 0 |
+        | ............................... |      |h21|     | 0 |
+        | ............................... |   *  |h22|  =  | 0 |
+        | ............................... |      |h23|     | 0 |
+        | ............................... |      |h31|     | 0 |
+        | ............................... |      |h32|     | 0 |
+        | ............................... |      |h33|     | 0 |
+                                           8x9        9x1        8x1    
+    */
+    
+    // symbol: x' replace with x_
+    assert(pts_src.size() == pts_dst.size());
+    assert(pts_src.size() == 4);
+
+    typedef Eigen::Matrix<float, 8, 9> Mat8x9;
+    typedef Eigen::Matrix<float, 9, 1> Vec9;
+
+    Mat8x9 A;
+    Vec9   h;
+
+    for (size_t i(0); i < pts_src.size(); ++i)
+    {
+        float x  = pts_src[i].x;
+        float y  = pts_src[i].y;
+        float x_ = pts_dst[i].x;
+        float y_ = pts_dst[i].y;
+
+        // Fill the matrix A
+        A(2*i, 0) = x;
+        A(2*i, 1) = y;
+        A(2*i, 2) = 1;
+        A(2*i, 3) = 0;
+        A(2*i, 4) = 0;
+        A(2*i, 5) = 0;
+        A(2*i, 6) = -x_ * x;
+        A(2*i, 7) = -x_ * y;
+        A(2*i, 8) = -x_;
+
+        A(2*i+1, 0) = 0;
+        A(2*i+1, 1) = 0;
+        A(2*i+1, 2) = 0;
+        A(2*i+1, 3) = x;
+        A(2*i+1, 4) = y;
+        A(2*i+1, 5) = 1;
+        A(2*i+1, 6) = -y_ * x;
+        A(2*i+1, 7) = -y_ * y;
+        A(2*i+1, 8) = -y_;
+    }
+    
+    // SVD
+    Eigen::JacobiSVD<Eigen::MatrixXf> svd(A, Eigen::ComputeThinU | Eigen::ComputeThinV ); 
+
+    std::cout << "singular value = " << svd.singularValues() << std::endl;
+    std::cout << "U = \n" << svd.matrixU() << std::endl;
+    std::cout << "V = \n" << svd.matrixV() << std::endl;
+    
+    h = svd.matrixU().col(7);
+
+    // vector form to Matrix
+    Homography2DNormalizedParameterization<float>::To(h, &H);
+
+    if(DEBUG)
+    {
+        std::cout << "A = " << std::endl;
+        std::cout << A << std::endl;
+
+        std::cout << "-------" << std::endl;
+        std::cout << "Ah=0, H =" << std::endl;
+        std::cout << H << std::endl;
     }
 }
 
@@ -324,7 +432,8 @@ void calHomographyFromLinerConstraint(const point2f_set& pts_src,
 {
     // A * h = b
     // A = 8x8 matrix, h = 8x1 matrix, b = 8x1
-    
+    // check slide 27: http://www.cse.psu.edu/~rtc12/CSE486/lecture16.pdf
+
     /*
         | x, y, 1, 0, 0, 0, -x'x, -x'y |      |h11|     | x' |
         | 0, 0, 0, x, y, 1, -y'x, -y'y |      |h12|     | y' |

@@ -83,6 +83,7 @@ int main()
     cv::Mat H = cv::findHomography(pts_src, pts_dst, cv::FM_RANSAC, 3.0, inliersMask, 1000);
     std::cout << "OPENCV RANSAC H = " << std::endl;
     std::cout << H << std::endl;
+
     cv::Mat img_opencv_RANSAC;
     cv::warpPerspective(img_src, img_opencv_RANSAC, H, img_src.size());
     cv::imshow("img_OpenCV_RANSAC", img_opencv_RANSAC);
@@ -92,6 +93,8 @@ int main()
     ransac::RANSAC rs(p_success);
     cv::Mat H_htsui;
     rs.compute(pts_src, pts_dst, H_htsui);
+    //rs.compute(pts_src_fix, pts_dst_fix, H_htsui);
+
     cv::Mat img_htsui_RANSAC;
     cv::warpPerspective(img_src, img_htsui_RANSAC, H_htsui, img_src.size());
     cv::imshow("img_htsui_RANSAC", img_htsui_RANSAC);
