@@ -11,7 +11,7 @@
 
 // Eigen
 #include <Eigen/Core>
-#include <unsupported/Eigen/MatrixFunctions>
+#include <Eigen/LU>   // Lx = b
 #include <Eigen/SVD>  // SVD
 
 // opencv
@@ -487,8 +487,10 @@ void calHomographyFromLinerConstraint(const point2f_set& pts_src,
         b(2*i+1, 0) = y_;
     }
 
-    h = A.fullPivLu().solve(b);
-    
+    //h = A.fullPivLu().solve(b);
+    //h = A.householderQr().solve(b);  // looks good
+    h = A.partialPivLu().solve(b);
+
     // vector form to Matrix
     Homography2DNormalizedParameterization<float>::To(h, &H);
 

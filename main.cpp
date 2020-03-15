@@ -88,6 +88,7 @@ int main()
     cv::warpPerspective(img_src, img_opencv_RANSAC, H, img_src.size());
     cv::imshow("img_OpenCV_RANSAC", img_opencv_RANSAC);
 
+    
     // Comparing with Self-implemented Ransac
     float p_success = 0.99;
     ransac::RANSAC rs(p_success);
@@ -98,6 +99,33 @@ int main()
     cv::Mat img_htsui_RANSAC;
     cv::warpPerspective(img_src, img_htsui_RANSAC, H_htsui, img_src.size());
     cv::imshow("img_htsui_RANSAC", img_htsui_RANSAC);
+
+    // Comparing with nlsolver
+
+    cv::Mat H_nlsolver_1000;
+    Eigen::Matrix3f H_1000;
+    H_1000 << 0.643212, -0.279826, 299.501,
+         0.167107, 1.32003, 0,
+         -0.000587184, 0.00114689, 1;
+
+    cv::eigen2cv(H_1000, H_nlsolver_1000);
+
+    cv::Mat img_nlsolver_1000;
+    cv::warpPerspective(img_src, img_nlsolver_1000, H_nlsolver_1000, img_src.size());
+    cv::imshow("img_nlsolver_1000", img_nlsolver_1000);
+
+
+    cv::Mat H_nlsolver_100;
+    Eigen::Matrix3f H_100;
+    H_1000 << -4.16394, 5.69776, 361.468,
+         -5.28821, 8.82406, 0,
+         -0.0130028, 0.0176786, 1;
+
+    cv::eigen2cv(H_100, H_nlsolver_100);
+
+    cv::Mat img_nlsolver_100;
+    cv::warpPerspective(img_src, img_nlsolver_100, H_nlsolver_100, img_src.size());
+    cv::imshow("img_nlsolver_100", img_nlsolver_100);
 
     cv::waitKey(0);
 }
