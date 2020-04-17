@@ -2,7 +2,7 @@
 #include <iostream>
 
 // opencv 
-#include <opencv2/opencv.hpp>  //warpPerspective
+#include <opencv2/opencv.hpp>          //warpPerspective
 #include <opencv2/core/core.hpp>
 #include <opencv2/highgui/highgui.hpp>
 #include <opencv2/calib3d/calib3d.hpp> // findHomography
@@ -10,17 +10,18 @@
 #include <opencv2/features2d.hpp>
 
 // lib
-#include "ransac.h"
+#include "ransac.hpp"
 using namespace std;
 
 int main()
 {
-    cv::Mat img_src = cv::imread("book2.jpg");
-    cv::Mat img_dst = cv::imread("book1.jpg");
+    cv::Mat img_src = cv::imread("../images/book2.jpg");
+    cv::Mat img_dst = cv::imread("../images/book1.jpg");
 
     // convert the color into gray scale
     cv::cvtColor(img_src, img_src, cv::COLOR_BGR2GRAY);
     cv::cvtColor(img_dst, img_dst, cv::COLOR_BGR2GRAY);
+    
     // ----------  Reference homography - Baseline Homography -----------------
     std::vector<cv::Point2f> pts_src_fix;
     pts_src_fix.push_back(cv::Point2f(141, 131));

@@ -1,7 +1,7 @@
 # RANSAC for homography estimation
 
 ## Dependency
-- CMake 2.8+
+- CMake 3.10+
 - Eigen3
 - OpenCV2
 
@@ -11,7 +11,9 @@
 
 `cd ransac_homography`
 
-`cmake -DCMAKE_BUILD_TYPE=Debug .`
+`mkdir build && cd build`
+
+`cmake -DCMAKE_BUILD_TYPE=Debug ..`
 
 `./ransac_homography`
 

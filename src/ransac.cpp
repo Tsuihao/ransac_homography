@@ -1,59 +1,15 @@
-#ifndef RANSAC_H
-#define RANSAC_H
-
-// std
-#include <math.h> // ceil, isnan
-#include <limits> // numeric_limits
-#include <random>
-#include <algorithm>
-#include <iterator>
-#include <cassert> // assert
-
-// Eigen
-#include <Eigen/Core>
-#include <Eigen/LU>   // Lx = b
-#include <Eigen/SVD>  // SVD
-
-// opencv
-#include <opencv2/core/eigen.hpp> // eigen2cv
-#include <opencv2/core/core.hpp>
-
-#include "utils.h"
+#include "ransac.hpp"
+#include <iostream>
 
 #define VERBOSE true
 #define DEBUG false
 
-using point2f = cv::Point2f;
-using point2f_set = std::vector<cv::Point2f>;
-
 namespace ransac
 {
-
-typedef Eigen::Matrix<float, Eigen::Dynamic, Eigen::Dynamic> MatrixXf;
-typedef Eigen::Matrix<float, 1, Eigen::Dynamic> RowVectorXf;
-
-class RANSAC
-{
-public:
-// ctor
-RANSAC(float prob_success) : 
-    m_p_success(prob_success),
-    m_ratioOutliers(1.0), // outliers ratio begin with 100%
-    m_minSet(4),
-    m_thres(10),         // TBD(htsui) forward and backward SSD error tolerance
-    m_iter(2000),
-    m_maxInliers(0)       // init maxInliner with 0
-    {
-        // Make sure the indicesList is the same size as iteration number
-        m_indicesList.reserve(m_iter);
-        m_rnd.seed(168);
-    }
-
 ///////////////////////////////////////////////////////////////////////////////
-// main compute function
-void compute(const std::vector<cv::Point2f>& pts_src,
-             const std::vector<cv::Point2f>& pts_dst, 
-             cv::Mat& H)
+void RANSAC::compute(const std::vector<cv::Point2f>& pts_src,
+                     const std::vector<cv::Point2f>& pts_dst, 
+                     cv::Mat& H)
 {
     // cache the data set size
     setDatasetSize(pts_src, pts_dst);
@@ -113,21 +69,13 @@ void compute(const std::vector<cv::Point2f>& pts_src,
         
     }
     cv::eigen2cv(m_bestHomography, H);
-
-}
-///////////////////////////////////////////////////////////////////////////////
-protected:
-void setDatasetSize(const std::vector<cv::Point2f>& pts_src, const std::vector<cv::Point2f>& pts_dst)
-{
-    assert(pts_src.size() == pts_dst.size());
-    m_datasetSize = pts_src.size();
 }
 
 ///////////////////////////////////////////////////////////////////////////////
-void buildUpEigenMatrixFromCvPoint2f(const std::vector<cv::Point2f>& pts_src,
-                                     const std::vector<cv::Point2f>& pts_dst,
-                                     MatrixXf& eigen_pts_src,
-                                     MatrixXf& eigen_pts_dst)
+void RANSAC::buildUpEigenMatrixFromCvPoint2f(const std::vector<cv::Point2f>& pts_src,
+                                             const std::vector<cv::Point2f>& pts_dst,
+                                             MatrixXf& eigen_pts_src,
+                                             MatrixXf& eigen_pts_dst)
 {
     assert(pts_src.size() == pts_dst.size());
 
@@ -164,9 +112,10 @@ void buildUpEigenMatrixFromCvPoint2f(const std::vector<cv::Point2f>& pts_src,
     eigen_pts_dst.row(2) << v_ones;
 
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 // calculate the iteration number
-void updateInterNum()
+void RANSAC::updateInterNum()
 {
     /*
         N = log(1-p) / log(1-(1-e)^s)
@@ -190,11 +139,14 @@ void updateInterNum()
     //}
     if(VERBOSE) std::cout << "set iteration number N = " << m_iter << std::endl;
 }
+
 ///////////////////////////////////////////////////////////////////////////////
 // forward projection
 // p' = H * p
 // Here can do vectorization
-std::vector<float> forwardProjectionSqaureRootError(const Eigen::MatrixXf&  pts_dst, const Eigen::MatrixXf& pts_src, const Eigen::Matrix3f& H)
+std::vector<float> RANSAC::forwardProjectionSqaureRootError(const Eigen::MatrixXf&  pts_dst, 
+                                                            const Eigen::MatrixXf& pts_src, 
+                                                            const Eigen::Matrix3f& H)
 {
     std::vector<float> error;
     error.reserve(pts_src.size());
@@ -241,7 +193,9 @@ std::vector<float> forwardProjectionSqaureRootError(const Eigen::MatrixXf&  pts_
 ///////////////////////////////////////////////////////////////////////////////
 // backward projection
 // p = H_inv * p'
-std::vector<float>  backwardProjectionSqaureRootError(const Eigen::MatrixXf&  pts_dst, const Eigen::MatrixXf& pts_src, const Eigen::Matrix3f& H)
+std::vector<float>  RANSAC::backwardProjectionSqaureRootError(const Eigen::MatrixXf&  pts_dst, 
+                                                              const Eigen::MatrixXf& pts_src, 
+                                                              const Eigen::Matrix3f& H)
 {
     std::vector<float> error;
     error.reserve(pts_src.size());
@@ -280,8 +234,11 @@ std::vector<float>  backwardProjectionSqaureRootError(const Eigen::MatrixXf&  pt
     return error;
 
 }
+
 ///////////////////////////////////////////////////////////////////////////////
-size_t findInliers(const Eigen::MatrixXf&  pts_dst, const Eigen::MatrixXf& pts_src, const Eigen::Matrix3f& H)
+size_t RANSAC::findInliers(const Eigen::MatrixXf&  pts_dst, 
+                           const Eigen::MatrixXf& pts_src, 
+                           const Eigen::Matrix3f& H)
 {
     size_t inliers = 0;
     
@@ -301,8 +258,9 @@ size_t findInliers(const Eigen::MatrixXf&  pts_dst, const Eigen::MatrixXf& pts_s
 
     return inliers;
 }
+
 ///////////////////////////////////////////////////////////////////////////////
-void genRandomIndices(size_t count)
+void RANSAC::genRandomIndices(size_t count)
 {   
     std::uniform_int_distribution<size_t> indexDistribution(0, m_datasetSize - 1);
 
@@ -341,10 +299,11 @@ void genRandomIndices(size_t count)
         std::cout << "m_indicesList size = " << m_indicesList.size() << std::endl;
     }
 }
+
 ///////////////////////////////////////////////////////////////////////////////
-void calHomographyFromSVD(const point2f_set& pts_src, 
-                          const point2f_set& pts_dst, 
-                          Eigen::Matrix3f& H)
+void RANSAC::calHomographyFromSVD(const point2f_set& pts_src, 
+                                  const point2f_set& pts_dst, 
+                                  Eigen::Matrix3f& H)
 {  
     // A * h = 0
     // A =8x9 matrix, h = 9x1 matrix, 
@@ -424,11 +383,10 @@ void calHomographyFromSVD(const point2f_set& pts_src,
         std::cout << H << std::endl;
     }
 }
-
-///////////////////////////////////////////////////////////////////////////////
-void calHomographyFromLinerConstraint(const point2f_set& pts_src,
-                                      const point2f_set& pts_dst,
-                                      Eigen::Matrix3f& H)
+////////////////////////////////////////////////////////////////////////////////////
+void RANSAC::calHomographyFromLinerConstraint(const point2f_set& pts_src,
+                                              const point2f_set& pts_dst,
+                                              Eigen::Matrix3f& H)
 {
     // A * h = b
     // A = 8x8 matrix, h = 8x1 matrix, b = 8x1
@@ -507,21 +465,4 @@ void calHomographyFromLinerConstraint(const point2f_set& pts_src,
     }
 }
 
-///////////////////////////////////////////////////////////////////////////////
-private:
-
-int m_minSet;                  // for homography is 4
-long int m_thres;              // threshold
-int m_iter;                    // interation
-float m_p_success;             // probility of sucess
-float m_ratioOutliers;         // ratio of outliers
-size_t m_datasetSize;          // totoal number of points
-size_t m_maxInliers;           // number of inliers
-Eigen::Matrix3f m_bestHomography;    // base on the inliner count
-std::vector<cv::Vec4i> m_indicesList;
-std::mt19937 m_rnd;
-std::vector<cv::Point2f> m_pts_src;
-std::vector<cv::Point2f> m_pts_dst;
-}; // class RANSAC
-} // namespace ransac
-#endif
+} // ransace namespace
