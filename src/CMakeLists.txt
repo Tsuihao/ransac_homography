@@ -9,5 +9,5 @@ set(LIBRARIES
     Eigen3::Eigen
     )
 
-add_library(${PROJECT_NAME}_lib ${SOURCES})  # make math into a library
-target_link_libraries(${PROJECT_NAME}_lib PRIVATE ${LIBRARIES})
+add_library(${CMAKE_PROJECT_NAME}_lib ${SOURCES})  # make math into a library
+target_link_libraries(${CMAKE_PROJECT_NAME}_lib PRIVATE ${LIBRARIES})
